@@ -1,38 +1,53 @@
-# Fine_tuning_mistral7B
+# Fine-tuning Mistral 7B
 
-# Fine-tuning Mistral 7B avec un dataset médical
-
-Ce projet permet de fine-tuner le modèle **Mistral 7B** sur un dataset médical. Il comprend des scripts pour la préparation des données, l'entraînement, l'inférence et l'évaluation du modèle.
+Ce projet permet de fine-tuner le modèle **Mistral 7B** sur un dataset json ou csv. Il comprend des scripts pour la conversion et préparation des données, l'entraînement, l'inférence et l'évaluation du modèle.
 
 ---
 
-## 📁 Structure du projet
+##  Notes
+- Ce projet utilise **Weights & Biases (W&B)** pour le suivi des performances.
+- Vous pouvez modifier les hyperparamètres d'entraînement dans `train.py`.
+- Le notebook `projet_complet.ipynb` permet d'exécuter l'ensemble du projet sous Google Colab.
+- Attention les scripts de conversion supposent que les données ont une certaine organisation sinon vous pouvez modifier directement les scripts
+
+---
+
+##  Prérequis
+
+Avant de commencer, assurez-vous d'avoir :
+- Une **clé API Mistral** avec des crédits disponibles
+- Un **compte Weights & Biases (W&B)** pour le suivi de l'entraînement
+
+---
+
+##  Structure du projet
 ```
 /MonProjet-FineTuning
 │── /data
-│   ├── train.jsonl
-│   ├── validation.jsonl
-│   ├── test.jsonl
+│   ├── /raw           # Dossier contenant les datasets bruts
+│   ├── /converted     # Dossier contenant les datasets convertis
+│   ├── /processed     # Dossier contenant train.jsonl, validation.jsonl et test.jsonl
 │── /scripts
-│   ├── preprocess.py  # Conversion et préparation des données
-│   ├── upload_data.py  # Upload des datasets sur Mistral
-│   ├── train.py  # Fine-tuning du modèle
-│   ├── infer.py  # Inférence sur de nouvelles données
-│   ├── evaluate.py  # Calcul des métriques d’évaluation
+│   ├── json_to_jsonl.py  # Conversion JSON vers JSONL et au format attendu par mistral
+│   ├── csv_to_jsonl.py   # Conversion CSV vers JSONL et au format attendu par mistral
+│   ├── train_test_val.py     # Génération des ensembles train/test/val
+│   ├── upload_data.py    # Upload des datasets sur Mistral
+│   ├── train.py          # Fine-tuning du modèle
+│   ├── infer.py          # Inférence sur de nouvelles données
+│   ├── evaluate.py       # Calcul des métriques d’évaluation
 │── /notebooks
-│   ├── version3.ipynb  # Notebook Google Colab complet
+│   ├── Fine_tuning_mistral7B.ipynb  # Notebook Google Colab complet
 │── requirements.txt  # Liste des dépendances
 │── README.md  # Documentation du projet
-│── .gitignore  # Exclusion des fichiers inutiles
 ```
 
 ---
 
-## 🚀 Installation
+##  Installation
 ### 1. Cloner le repo
 ```bash
-git clone https://github.com/ton-utilisateur/MonProjet-FineTuning.git
-cd MonProjet-FineTuning
+git clone https://github.com/aelharra1/Fine_tuning_mistral7B.git
+cd Fine_tuning_mistral7B
 ```
 
 ### 2. Installer les dépendances
@@ -40,57 +55,69 @@ cd MonProjet-FineTuning
 pip install -r requirements.txt
 ```
 
-### 3. Préparer les données
-Assurez-vous que votre dataset est au format CSV, puis exécutez :
-```bash
-python scripts/preprocess.py
-```
-Cela va générer trois fichiers : `train.jsonl`, `validation.jsonl` et `test.jsonl`.
+---
 
-### 4. Uploader les données sur Mistral
+##  Préparation des données
+### 1. Ajouter votre dataset
+Placez votre dataset brut dans `data/raw/` au format **CSV** ou **JSON**.
+
+### 2. Convertir le dataset au format JSONL
+Pour le csv, les noms des colonnes doivent être 'input' et 'output' et pour le json il doit y avoir 'question' et 'answer'
+
+Si votre dataset est en JSON, utilisez :
 ```bash
-python scripts/upload_data.py
+python scripts/json_to_jsonl.py --input data/raw/votre_fichier.json --output data/converted/votre_fichier.jsonl
+```
+Si votre dataset est en CSV, utilisez :
+```bash
+python scripts/csv_to_jsonl.py --input data/raw/votre_fichier.csv --output data/converted/votre_fichier.jsonl
+```
+La conversion permet d'obtenir des fichiers au format demandé par Mistral pour le fine-tuning.
+
+### 3. Générer les ensembles d'entraînement, validation et test
+```bash
+python scripts/split_data.py --input data/converted/votre_fichier.jsonl --train_ratio 0.8 --val_ratio 0.1 --test_ratio 0.1
+```
+Cela générera `train.jsonl`, `validation.jsonl` et `test.jsonl` dans `data/processed/`.
+
+---
+
+##  Entraînement du modèle
+### 1. Uploader les données sur Mistral
+```bash
+python scripts/upload_data.py --train data/processed/train.jsonl --val data/processed/validation.jsonl
 ```
 
-### 5. Lancer l'entraînement
+### 2. Créer un job et lancer l'entraînement
 ```bash
-python scripts/train.py
+python scripts/train.py --train_file train.jsonl --val_file validation.jsonl --model_name mon-modele-finetune --epochs 3
 ```
+Ce script va lancer l'entraînement et enregistrer les logs sur Weights & Biases.
 
-### 6. Faire une inférence
-```bash
-python scripts/infer.py --input "Texte à tester"
-```
+---
 
-### 7. Évaluer le modèle
+##  Inférence
+Testez le modèle fine-tuné sur un prompt :
 ```bash
-python scripts/evaluate.py
+python scripts/infer.py --model mon-modele-finetune --input "votre_prompt"
 ```
 
 ---
 
-## 📊 Métriques d'évaluation
-Le script `evaluate.py` calcule les scores suivants :
-- **BLEU**
-- **ROUGE-1, ROUGE-2, ROUGE-L**
-- **F1-Score**
+##  Évaluation des métriques
+L'évaluation réalise l'ensemble des inférences sur le dataset test avec le modèle fine-tuné et le modèle de base. Les scores calculés sont :
+- **BLEU** (qualité des réponses par rapport à la réponse attendue)
+- **ROUGE-1, ROUGE-2, ROUGE-L** (recouvrement des mots-clés)
+- **F1-Score** (précision et rappel combinés)
+
+Lancer l'évaluation :
+```bash
+python scripts/evaluate.py data/processed/test.jsonl mon-modele-finetune
+```
+Les résultats seront affichés sous forme d'histogrammes.
 
 ---
 
-## 📌 Notes
-- Ce projet utilise **Weight & Biases (W&B)** pour le suivi des performances.
-- Vous pouvez modifier les hyperparamètres dans `train.py`.
-- Pour exécuter le projet sous Google Colab, utilisez le notebook `version3.ipynb`.
+**Auteur :** [aelharra1]
 
----
-
-## ✨ Contributions
-Les contributions sont les bienvenues ! N'hésitez pas à proposer des améliorations via une pull request.
-
-## 📜 Licence
-Ce projet est sous licence MIT. Vous êtes libre de l'utiliser et de le modifier.
-
----
-
-**Auteur :** [Ton Nom]
 

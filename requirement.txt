@@ -1,0 +1,9 @@
+python
+wandb
+mistralai
+panda
+rouge_score
+datasets
+numpy
+scikit-learn
+matplotlib

@@ -34,11 +34,23 @@ def calculate_metrics(reference, candidate):
 
     return bleu_score, rouge_scores, f1
 
-def evaluate_model(api_key, test_file, fine_tuned_model):
+def evaluate_model(api_key, test_file):
     """Effectue l'inférence sur l'ensemble de test et calcule les métriques."""
     
     # Initialiser le client Mistral
     client = Mistral(api_key=api_key)
+
+    # Lister les jobs (finetuning)
+    jobs = client.fine_tuning.jobs.list()
+
+    # Dernier modèle fine-tuné
+    job_id = jobs.data[0].id
+
+    # Choisir le job correspondant au modèle souhaité
+    retrieved_jobs = client.fine_tuning.jobs.get(job_id=job_id)
+
+    # Charger le modèle fine-tuné
+    fine_tuned_model = retrieved_jobs.fine_tuned_model
     
     # Charger le dataset de test
     with open(test_file, "r", encoding="utf-8") as f:
@@ -149,8 +161,7 @@ def evaluate_model(api_key, test_file, fine_tuned_model):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Évaluation d'un modèle Mistral fine-tuné.")
     parser.add_argument("test_file", type=str, help="Fichier JSONL du test")
-    parser.add_argument("fine_tuned_model", type=str, help="Nom du modèle fine-tuné")
     args = parser.parse_args()
 
     api_key = getpass.getpass("Entrez votre clé API Mistral : ")
-    evaluate_model(api_key, args.test_file, args.fine_tuned_model)
+    evaluate_model(api_key, args.test_file)

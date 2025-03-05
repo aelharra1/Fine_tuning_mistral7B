@@ -66,17 +66,18 @@ Pour le csv, les noms des colonnes doivent être 'input' et 'output' et pour le 
 
 Si votre dataset est en JSON, utilisez :
 ```bash
-python scripts/json_to_jsonl.py --input data/raw/votre_fichier.json --output data/converted/votre_fichier.jsonl
+python scripts/json_to_jsonl.py votre_fichier.json
 ```
 Si votre dataset est en CSV, utilisez :
 ```bash
-python scripts/csv_to_jsonl.py --input data/raw/votre_fichier.csv --output data/converted/votre_fichier.jsonl
+python scripts/csv_to_jsonl.py votre_fichier.csv
 ```
 La conversion permet d'obtenir des fichiers au format demandé par Mistral pour le fine-tuning.
+Cela générera `votre_fichier.jsonl` dans `data/converted/`.
 
 ### 3. Générer les ensembles d'entraînement, validation et test
 ```bash
-python scripts/split_data.py --input data/converted/votre_fichier.jsonl --train_ratio 0.8 --val_ratio 0.1 --test_ratio 0.1
+python scripts/train_test_val.py votre_fichier.jsonl --train_ratio 0.8 --val_ratio 0.1 --test_ratio 0.1
 ```
 Cela générera `train.jsonl`, `validation.jsonl` et `test.jsonl` dans `data/processed/`.
 
@@ -90,16 +91,16 @@ python scripts/upload_data.py --train data/processed/train.jsonl --val data/proc
 
 ### 2. Créer un job et lancer l'entraînement
 ```bash
-python scripts/train.py --train_file train.jsonl --val_file validation.jsonl --model_name mon-modele-finetune --epochs 3
+python scripts/train.py --train_file train.jsonl --val_file validation.jsonl
 ```
 Ce script va lancer l'entraînement et enregistrer les logs sur Weights & Biases.
 
 ---
 
 ##  Inférence
-Testez le modèle fine-tuné sur un prompt :
+Testez le modèle fine-tuné sur un prompt (cette inférence se fera sur le dernier modèle dans la liste des modèles fine-tunés):
 ```bash
-python scripts/infer.py --model mon-modele-finetune --input "votre_prompt"
+python scripts/infer.py --input "votre_prompt"
 ```
 
 ---
@@ -111,6 +112,7 @@ L'évaluation réalise l'ensemble des inférences sur le dataset test avec le mo
 - **F1-Score** (précision et rappel combinés)
 
 Lancer l'évaluation :
+Ici également l'évaluation se fera sur le dernier modèle fine-tuné
 ```bash
 python scripts/evaluate.py data/processed/test.jsonl mon-modele-finetune
 ```

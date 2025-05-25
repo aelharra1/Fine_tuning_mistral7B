@@ -1,6 +1,6 @@
 # Fine-tuning Mistral 7B
 
-Ce projet permet de fine-tuner le modèle **Mistral 7B** sur un dataset json ou csv. Il comprend des scripts pour la conversion et préparation des données, l'entraînement, l'inférence et l'évaluation du modèle.
+Ce projet permet de réaliser le fine-tuning du modèle **Mistral 7B** sur un dataset json ou csv. Il comprend des scripts pour la conversion et préparation des données, l'entraînement, l'inférence et l'évaluation du modèle.
 
 ---
 
